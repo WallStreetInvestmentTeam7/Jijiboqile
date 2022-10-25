@@ -8,59 +8,47 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   if (is.null(store)) store <- initStore(newRowList,params$series)
   store <- updateStore(store, newRowList, params$series)
   
-  marketOrders <- -currentPos; pos <- allzero
+  marketOrders <- allzero; pos <- allzero
   
-  if (store$iter > params$dmalookback$long) {
-    startIndex <-  store$iter - params$dmalookback$long
-    for (i in 1:length(params$series)) {
+  for (i in 1:length(params$series)) {
       cl <- newRowList[[params$series[i]]]$Close
-      print(cl)
+
+      #print(cl)
       #prices <- as.xts(store$cl[[params$series[i]]])
 
-      short_ma <- last(SMA(store$cl[startIndex:store$iter,i],n=params$dmalookbacks$short))
-      long_ma <- last(SMA(store$cl[startIndex:store$iter,i],n=params$dmalookbacks$long))
-
-      #
-      if (short_ma > long_ma) {
+      short_ma <- last(EMA(store$cl[startIndexma:store$iter,i],n=params$dmalookbacks$short))
+      long_ma <- last(EMA(store$cl[startIndexma:store$iter,i],n=params$dmalookbacks$long))
+      macd <- as.data.frame(last(MACD(store$cl[startIndexmacd:store$iter,i],
+                                      nFast=params$macdFast, nSlow=params$macdSlow,
+                                      maType=params$macdMa, percent=TRUE)))
+      #print(last((SMA(store$cl[startIndex:store$iter-1,i],n=params$dmalookbacks$short))))
+      #print(short_ma) 
+     
+      if (last((EMA(store$cl[startIndexma:store$iter-1,i],n=params$dmalookbacks$short))) 
+          <=
+          last((EMA(store$cl[startIndexma:store$iter-1,i],n=params$dmalookbacks$long)))
+          &&
+          short_ma > long_ma
+          &&macd$macd > macd$signal) {
         pos[params$series[i]] <- 1
 
       }
 
       #
-      else if (short_ma < long_ma) {
+      else if (last((EMA(store$cl[startIndexma:store$iter-1,i],n=params$dmalookbacks$short))) 
+               >=
+               last((EMA(store$cl[startIndexma:store$iter-1,i],n=params$dmalookbacks$long)))
+               &&
+               short_ma < long_ma
+               &&
+               macd$macd < macd$signal) {
 
         pos[params$series[i]] <- -1
       }
     }
   }
   
-  if (store$iter > params$macdlookback) {
-
-    startIndex <-  store$iter - params$macdlookback
-
-    for (i in (1:length(params$series))) {
-
-      #prices <- as.xts(store$cl[[params$series[i]]])
-      macd <- last(MACD(store$cl[startIndex:store$iter,i],
-                             nFast=params$macdFast, nSlow=params$macdSlow,
-                             maType=params$macdMa, percent=TRUE))
-      
-      
-
-      #dea <- EMA(prices$Close,macdSig,wilder = FALSE,ratio = NULL)
-      #dif <- EMA(prices$Close,macdFast,wilder = FALSE,ratio = NULL) - EMA(prices$Close,macdSlow,wilder = FALSE,ratio = NULL)
-      
-      # A MACD less than 0 suggests a downward trend.
-      if(macd < 0){
-        pos[params$series[i]] <- -1
-
-      } 
-      # a macd more than 0 suggests a upward trend.
-      # else if (macd > 0){
-      #   pos[params$series[i]] <- 1
-      # }
-    }
-  }
+  
 
   pos <- pos
   marketOrders <- marketOrders + pos
