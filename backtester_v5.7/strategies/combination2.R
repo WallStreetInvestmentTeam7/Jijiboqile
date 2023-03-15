@@ -32,67 +32,9 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   #rsrsAccumulatePosition <- store$rsrsAccumulatePosition
   a006Pos <- allzero
   
-  #main strategy logic
-  #-------------------------------------------
-  #Iterate through the series in params$series
-  
-  #---------------------------logic for Alpha006---------------------------
   
   
-  #For the first specified days, store the first day to today's volume and close price
-  
-  # for (i in 1:length(params$series)) {
-  #   
-  #   #using open prices difference as the position normalization
-  #   OpenDiffs <- diff(store$ope)
-  #   absOpenDiffs <- matrix(abs(OpenDiffs),ncol = length(params$series))
-  #   avgAbsDiffs <- apply(absOpenDiffs,2,function(x) mean(x[x>0]))
-  #   largestAvgAbsDiffs <- max(avgAbsDiffs)
-  #   posnorm <- round(largestAvgAbsDiffs/avgAbsDiffs)
-  #   
-  #   #Get every stock's volume and closed price data
-  #   VOLUME = store$vol[,i]
-  #   CLOSE = store$cl[,i]
-  #   OPEN = store$ope[,i]
-  #   
-  #   #Initialize Alpha 006
-  #   thr006 <- params$thr006
-  #   
-  #   if(store$iter<=params$obday){
-  #     VOLUMELIST <- VOLUME[0:store$iter]
-  #     CLOSELIST <- CLOSE[0:store$iter]
-  #   }
-  #   
-  #   #After the specified days, store the most recent n days' data
-  #   #n is the observed day and is passed in through parameter "obday"
-  #   else if(store$iter>params$obday){
-  #     VOLUMELIST <- VOLUME[as.numeric(store$iter-params$obday):store$iter]
-  #     CLOSELIST <- CLOSE[as.numeric(store$iter-params$obday):store$iter]
-  #   }
-  #   
-  #   #Apply Alpha006 equation
-  #   #Get Everyday's new alpha rate
-  #   alpha006 = -1*cor(as.vector(CLOSELIST), as.vector(VOLUMELIST), use = "everything", method="pearson")
-  #   #print(paste("alpha006 =",alpha006))
-  #   
-  #   #Do not trade in the first day
-  #   if (store$iter > 1){
-  #     #Change Position
-  #     if (alpha006*100 < thr006){
-  #       a006Pos[params$series[i]] <- -posnorm[i]
-  #     }
-  #     else if (alpha006*100 > thr006){
-  #       a006Pos[params$series[i]] <- posnorm[i]
-  #     }
-  #     else if (alpha006*100 == thr006){
-  #       a006Pos[params$series[i]] <- 0
-  #     }
-  #   }
-  #   
-  # }
-  # 
-  
-  #--------logic for rsrs-----------------------------------
+  #-----------------------------------logic for rsrs & alpha006-----------------------------------
   
   
   if(store$iter > params$rsrs_lookback_m + params$rsrs_lookback){
@@ -122,15 +64,9 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 
       #z-score rsrs
       rsrs_z <- (rsrs_n - mean(rsrs_m))/sd(rsrs_m)
-#########################################################################      
-      # ATR <- Cal_ATR(High, Low,Close, startIndex, params$lookback,store$iter)
-      # ATR <- as.numeric(ATR)
-      # ##print(ATR)
-      # stop <- ATR*0.8
-      # #print(stop)
-      # op <- Open[store$iter]
-      # mean_p <- (High[store$iter]+Low[store$iter])/2
-########################################################################
+
+      
+      #Now alpha006
       #Get every stock's volume and closed price data
       VOLUME = store$vol[,i]
       CLOSE = store$cl[,i]
@@ -155,7 +91,6 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #Get Everyday's new alpha rate
       alpha006 = -1*cor(as.vector(CLOSELIST), as.vector(VOLUMELIST), use = "everything", method="pearson")
       #print(paste("alpha006 =",alpha006))
-#############################################################################
 
 
       if (rsrs_z < 0.7){
@@ -188,20 +123,18 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       }
       
       ###################################################################
+      #-----------------------------------visualization-----------------------------------
       currentPosition <- append(currentPosition,
                                 currentPos[params$series[i]])
       date <<- append(date,index(newRowList[[1]]))
       strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
       ###################################################################
-
     }
-
-
-
     }
   }
 
-  
+  #-----------------------------------logic for dmaMACD-----------------------------------
+    
   if (store$iter > params$dmalookbacks$long && store$iter > params$macdlookback) {
 
 
@@ -272,6 +205,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       }
       
       ###################################################################
+      #-----------------------------------visualization-----------------------------------
       currentPosition <- append(currentPosition,
                                 currentPos[params$series[i]])
       date <<- append(date,index(newRowList[[1]]))
@@ -295,16 +229,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   marketOrders <- marketOrders + rsrsPos + dmaPos + a006Pos
   
   ####################################################################################
-  #plot(marketOrders)
-  #Mydata <- data.frame(marketOrders)
-  #write.csv(Mydata, file = "Mydata.csv", row.names = FALSE)
-  #Visualization(marketOrders, posList, store$iter, dateList)
-  #posList <- append(posList, marketOrders)
-  #print(paste("aaaaa",posList))
-  #print(paste("?",length(marketOrders)))
-  #print(paste(""))
-  
-  
+  #-----------------------------------visualization-----------------------------------
   if(store$iter==runningDays-2){
     strategyMatrix <- strategyMatrix[-1,]
     for(i in 1:length(params$series)){
