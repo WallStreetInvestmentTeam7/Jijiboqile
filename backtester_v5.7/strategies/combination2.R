@@ -97,26 +97,6 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #correlation value larger - tongzhangtongdie (we do not want)
       #with (-1): Alpha006's value larger - means Liangjiabeili larger - means we should buy
       #print(paste("alpha006 =",alpha006))
-      
-      
-      
-      ##################################  Get returns ###################################################
-      prev_close <- CLOSE[store$iter-2]
-      cur_open <- OPEN[store$iter-1]
-      next_open <- OPEN[store$iter]
-     
-      
-      # run from day 2, where oldPos would always be 0, until penultimate day
-      slippage <- abs(prev_close-next_open)*0.2
-      
-      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
-      pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
-      #print(paste("pnl_yesterday",pnl_yesterday))
-      
-      #######################################################################################################
-      
-
-      
 
       
       #Set Position
@@ -129,6 +109,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
           limitOrders1[i] <- rsrsPos[params$series[i]]
           limitPrices1[i] <- mean_p + stop
         }
+      }
 
       else if (rsrs_z > 0.7){
         
@@ -143,14 +124,13 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
         if (alpha006*100 > thr006){
           a006Pos[params$series[i]] <- round(abs(alpha006)) * posnorm[i]/100
         }
-          
-
       }
+      
       else{
-        
           rsrsPos[params$series[i]] <- 0
           a006Pos[params$series[i]] <- 0
       }
+      
       
       ###################################################################
       #-----------------------------------visualization-----------------------------------
@@ -159,7 +139,26 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       date <<- append(date,index(newRowList[[1]]))
       strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
       ###################################################################
-    }
+      
+      ##################################  Get returns and stop loss  ###################################################
+      prev_close <- CLOSE[store$iter-2]
+      cur_open <- OPEN[store$iter-1]
+      next_open <- OPEN[store$iter]
+      
+      
+      # run from day 2, where oldPos would always be 0, until penultimate day
+      slippage <- abs(prev_close-next_open)*0.2
+      
+      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
+      pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
+      print(paste("pnl_yesterday",pnl_yesterday))
+      
+      if (pnl_yesterday<0){
+        rsrsPos <- rsrsPos/2
+        a006Pos <- a006Pos/2
+      }
+      
+      #################################################################################################################
     }
   }
 
@@ -257,6 +256,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   # marketOrders3 <- -currentPos + a006Pos
   
   marketOrders <- marketOrders + rsrsPos + dmaPos + a006Pos
+  
   
   ####################################################################################
   #-----------------------------------visualization-----------------------------------
