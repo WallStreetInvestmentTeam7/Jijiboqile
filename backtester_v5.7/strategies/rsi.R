@@ -70,12 +70,41 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
     store <- updateStore(store, newRowList, params$series)
 	
 	# RSI needs 2 extra periods beyond the lookback
-	if (store$iter >= params$lookback + 2 ) {
-		marketOrders   <- sapply(1:length(newRowList),
+	  if (store$iter >= params$lookback + 2 ) {
+		    marketOrders   <- sapply(1:length(newRowList),
 		                        function(x) ifelse(x %in% params$series, 
 		                                lgStFt(store$cl,which(x==params$series),store$iter), 0))
 	} else
         marketOrders <- allzero
+        #pos <- allzero
+    #for macd
+    # if (store$iter > params$macdlookback) {
+    #   
+    #   startIndex <-  store$iter - params$macdlookback
+    #   
+    #   for (i in (1:length(params$series))) {
+    #     
+    #     #prices <- as.xts(store$cl[[params$series[i]]])
+    #     macd <- as.data.frame(last(MACD(store$cl[startIndex:store$iter,i],
+    #                                     nFast=params$macdFast, nSlow=params$macdSlow,
+    #                                     maType=params$macdMa, percent=TRUE)))
+    #     print(macd)
+    #     #print(macd$macd)
+    #     
+    #     #dea <- EMA(prices$Close,macdSig,wilder = FALSE,ratio = NULL)
+    #     #dif <- EMA(prices$Close,macdFast,wilder = FALSE,ratio = NULL) - EMA(prices$Close,macdSlow,wilder = FALSE,ratio = NULL)
+    #     
+    #     # A MACD less than 0 suggests a downward trend.
+    #     if(macd$macd < macd$signal){
+    #       pos[params$series[i]] <- -1
+    #       
+    #     } 
+    #     #a macd more than 0 suggests a upward trend.
+    #     else if (macd$macd > macd$signal){
+    #       pos[params$series[i]] <- 1
+    #     }
+    #   }
+    # }
 
 
     # exit positions from yesterday
@@ -137,6 +166,7 @@ updateStore <- function(store, newRowList, series) {
 lgStFt <-	function(clStore,column,iter) {
 	# decide if we should go long/short/flat (returning 1/-1/0)
 	startIndex <- iter - params$lookback - 1 # needs 2 extra periods
+	print(clStore[startIndex:iter,column])
 	rsi <- last(RSI(clStore[startIndex:iter,column],n=params$lookback)) 
 	if (rsi > (50 + params$threshold))
         return(-1) # short

@@ -1,7 +1,7 @@
 source('framework/data.R'); 
 source('framework/backtester.R')
 source('framework/processResults.R'); 
-source('strategies/bbands_contrarian.R') 
+source('strategies/bbands_holding_period.R') 
 
 numOfDays <- 200
 dataList <- getData(directory="PART1")

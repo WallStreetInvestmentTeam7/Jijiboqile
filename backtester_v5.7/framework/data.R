@@ -19,3 +19,4 @@ getData  <- function(directory) {
     cat("Read",nseries, "series from", directory,"\n")
     return(lapply(fnames, readFile))
 }
+

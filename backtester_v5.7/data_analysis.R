@@ -6,9 +6,9 @@ StockDates <- as.Date(Stock$Index)
 #Step 1 - Plotting the data
 
 #Draw Original Series
-par(mfrow=c(1,2))
-plot(StockDates, Stock$Open, type="l", xlab="Time", ylab="Open Price")
-plot(StockDates, Stock$Close, type="l", xlab="Time", ylab="Close Price")
+# par(mfrow=c(1,2))
+# plot(StockDates, Stock$Open, type="l", xlab="Time", ylab="Open Price")
+# plot(StockDates, Stock$Close, type="l", xlab="Time", ylab="Close Price")
 
 #Visualising the Data
 par(mfrow=c(2,3))

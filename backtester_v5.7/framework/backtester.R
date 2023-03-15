@@ -234,7 +234,7 @@ backtest <- function(dataList, getOrders, params, sMult) {
 
     # Initialisation of getOrders with first row of data, via is.null(store)
     store             <- NULL
-
+    
     # pnlList will store trading results
     # initialize lists of 0 rows; getRowList(dataList,1) used to get date for each via index()
     #pnlList <- mapply(function(x, y) xts(x, index(y)),0, getRowList(dataList,1), SIMPLIFY = FALSE)
@@ -404,6 +404,9 @@ backtest <- function(dataList, getOrders, params, sMult) {
     # k is the proportion of days that a trading position was taken in some
     # series
     k <- round(100*posCounter/(numOfDays-2))    
+    pfolioPnL <- aggregatePnL(pnlList)
+    aggProfit <- last(pfolioPnL$CumPnL) 
 
-    return(list(pnlList=pnlList, netWorthList=netWorthList, positionValuesList=positionValuesList, k=k))
+    return(list(pnlList=pnlList, netWorthList=netWorthList, positionValuesList=positionValuesList, k=k,pfolioPnL=pfolioPnL,
+                aggProfit=aggProfit))
 }
