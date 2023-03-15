@@ -52,6 +52,14 @@ sMult <- 0.20 # slippage multiplier
 #   print(pfolioPnL$fitAgg)
 # }
 
+########################################################
+strategyMatrix <- matrix(ncol = 10)
+runningDays <- 1000
+date <- vector()
+currentPosition <- vector()
+#dateList <- c()
+#########################################################
+
 #Store the threshold and its performance into a dataframe
 #Output the data
 results <- backtest(dataList,getOrders,params,sMult)

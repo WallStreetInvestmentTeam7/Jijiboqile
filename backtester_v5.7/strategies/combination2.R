@@ -189,10 +189,15 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       else{
         
           rsrsPos[params$series[i]] <- 0
-        
-        #rsrsPos[params$series[i]] <- 0
 
       }
+      
+      ###################################################################
+      currentPosition <- append(currentPosition,
+                                currentPos[params$series[i]])
+      date <<- append(date,index(newRowList[[1]]))
+      strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
+      ###################################################################
 
     }
 
@@ -269,6 +274,13 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       else{
         dmaPos[params$series[i]] <- 0
       }
+      
+      ###################################################################
+      currentPosition <- append(currentPosition,
+                                currentPos[params$series[i]])
+      date <<- append(date,index(newRowList[[1]]))
+      strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
+      ###################################################################
 
     }
 
@@ -285,6 +297,30 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   # marketOrders3 <- -currentPos + a006Pos
   
   marketOrders <- marketOrders + rsrsPos + dmaPos + a006Pos
+  
+  ####################################################################################
+  #plot(marketOrders)
+  #Mydata <- data.frame(marketOrders)
+  #write.csv(Mydata, file = "Mydata.csv", row.names = FALSE)
+  #Visualization(marketOrders, posList, store$iter, dateList)
+  #posList <- append(posList, marketOrders)
+  #print(paste("aaaaa",posList))
+  #print(paste("?",length(marketOrders)))
+  #print(paste(""))
+  
+  
+  if(store$iter==runningDays-2){
+    strategyMatrix <- strategyMatrix[-1,]
+    for(i in 1:length(params$series)){
+      png(paste("Graph", toString(params$series[i]), ".png"),
+          width = 1920, height = 1080, units = "px")
+      matplot(date,strategyMatrix[,i],
+              ylab="Current Position", type='l')
+      dev.off()
+    }
+  }
+  ####################################################################################
+  
   return(list(store=store,marketOrders=marketOrders,
               limitOrders1=limitOrders1,limitPrices1=limitPrices1,
               limitOrders2=allzero,limitPrices2=allzero))
