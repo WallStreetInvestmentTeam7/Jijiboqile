@@ -198,6 +198,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 
 
 
+    }
   }
 
   
