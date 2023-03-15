@@ -163,32 +163,27 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
         rsrsPos[params$series[i]] <- -round(rsrs_n * (posnorm[i]/68))
         #Only trade after 1 days (because of alpha 018)
         if (store$iter > 1){
-          #Change Position
-          if (alpha006*100 < thr006){
-            a006Pos[params$series[i]] <- -round(abs(alpha006)) * posnorm[i]/100
-          }
-          else if (alpha006*100 > thr006){
+          if (alpha006*100 > thr006){
             a006Pos[params$series[i]] <- round(abs(alpha006)) * posnorm[i]/100
           }
-          else if (alpha006*100 == thr006){
-            a006Pos[params$series[i]] <- 0
-          }
-        }
+          
       }
 
       else if (rsrs_z > 0.7){
-        # if(rsrsPos[params$series[i]] != 0){
-        #   rsrsPos[params$series[i]] <- -currentPos[params$series[i]]+ round(rsrs_n * posnorm[i])
-        # }
-        # else{
-        #   rsrsPos[params$series[i]] <- round(rsrs_n * posnorm[i])
-        # }
+        
         rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i]/68))
+        if (store$iter > 1){
+          if (alpha006*100 < thr006){
+            a006Pos[params$series[i]] <- -round(abs(alpha006)) * posnorm[i]/100
+          }
+          
+        }
 
       }
       else{
         
           rsrsPos[params$series[i]] <- 0
+          a006Pos[params$series[i]] <- 0
 
       }
       
