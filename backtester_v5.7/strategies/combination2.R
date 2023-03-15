@@ -286,7 +286,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   
   marketOrders <- marketOrders + rsrsPos + dmaPos + a006Pos
   return(list(store=store,marketOrders=marketOrders,
-              limitOrders1=allzero,limitPrices1=allzero,
+              limitOrders1=limitOrders1,limitPrices1=limitPrices1,
               limitOrders2=allzero,limitPrices2=allzero))
 }
 
