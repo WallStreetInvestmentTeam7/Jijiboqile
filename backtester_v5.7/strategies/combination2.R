@@ -3,9 +3,8 @@ maxRows <- 11000 # used to initialize a matrix to store closing prices
 
 getOrders <- function(store, newRowList, currentPos, info, params) {
   
-  #Initializing
+  # Initializing
   allzero  <- rep(0,length(newRowList)) # used for initializing vectors
-  
   
   # initialize store at the beginning
   if (is.null(store)) store <- initStore(newRowList,params$series)
@@ -48,30 +47,35 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       largestAvgAbsDiffs <- max(avgAbsDiffs)
       posnorm <- round(largestAvgAbsDiffs/avgAbsDiffs)
 
-      #indicators for RSRS strategy
-      #Get every stock's high and low price data
-      High = store$high[,i]
-      Low = store$low[,i]
+      #indicators
+      HIGH = store$high[,i]
+      LOW = store$low[,i]
+      OPEN <- store$ope[,i]
+      CLOSE <- store$cl[,i]
+      VOLUME <- store$vol[,i]
 
       # calculate Nth day's RSRS
       startIndex <- store$iter - params$rsrs_lookback #params$lookback=10, start from 301th day
-      rsrs_n <- Cal_RSRS(High, Low, startIndex,store$iter)
+      rsrs_n <- Cal_RSRS(HIGH, LOW, startIndex,store$iter)
       #print(rsrs_n)
 
       # calculate previous M days RSRS
       startIndex_m <- store$iter - params$rsrs_lookback_m #start from 11th day
-      rsrs_m <- Cal_RSRS_M(High, Low, startIndex_m, params$rsrs_lookback, store$iter)
+      rsrs_m <- Cal_RSRS_M(HIGH, LOW, startIndex_m, params$rsrs_lookback, store$iter)
 
       #z-score rsrs
       rsrs_z <- (rsrs_n - mean(rsrs_m))/sd(rsrs_m)
+      
+      #ATR
+      ATR <- as.numeric(Cal_ATR(HIGH, LOW, CLOSE, startIndex, params$rsrs_lookback, store$iter))
+     # print(ATR)
+      stop <- ATR*0.8
+      op <- OPEN[store$iter]
+      mean_p <- (HIGH[store$iter]+LOW[store$iter])/2
+      
 
       
       #Now alpha006
-      #Get every stock's volume and closed price data
-      VOLUME = store$vol[,i]
-      CLOSE = store$cl[,i]
-      OPEN = store$ope[,i]
-
       #Initialize Alpha 006
       thr006 <- params$thr006
 
@@ -90,36 +94,62 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #Apply Alpha006 equation
       #Get Everyday's new alpha rate
       alpha006 = -1*cor(as.vector(CLOSELIST), as.vector(VOLUMELIST), use = "everything", method="pearson")
+      #correlation value larger - tongzhangtongdie (we do not want)
+      #with (-1): Alpha006's value larger - means Liangjiabeili larger - means we should buy
       #print(paste("alpha006 =",alpha006))
+      
+      
+      
+      ##################################  Get returns ###################################################
+      prev_close <- CLOSE[store$iter-2]
+      cur_open <- OPEN[store$iter-1]
+      next_open <- OPEN[store$iter]
+     
+      
+      # run from day 2, where oldPos would always be 0, until penultimate day
+      slippage <- abs(prev_close-next_open)*0.2
+      
+      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
+      pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
+      #print(paste("pnl_yesterday",pnl_yesterday))
+      
+      #######################################################################################################
+      
 
+      
 
+      
+      #Set Position
       if (rsrs_z < 0.7){
         
         rsrsPos[params$series[i]] <- -round(rsrs_n * (posnorm[i]/68))
-        #Only trade after 1 days (because of alpha 018)
-        if (store$iter > 1){
-          if (alpha006*100 > thr006){
-            a006Pos[params$series[i]] <- round(abs(alpha006)) * posnorm[i]/100
-          }
-          
-      }
+        
+        #rsrs Stop loss
+        if(as.numeric(op) >= as.numeric(mean_p) - as.numeric(stop)){
+          limitOrders1[i] <- rsrsPos[params$series[i]]
+          limitPrices1[i] <- mean_p + stop
+        }
 
       else if (rsrs_z > 0.7){
         
-        rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i]/68))
-        if (store$iter > 1){
-          if (alpha006*100 < thr006){
-            a006Pos[params$series[i]] <- -round(abs(alpha006)) * posnorm[i]/100
-          }
-          
+        rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i]/68))       
+        
+        #rsrs Stop loss
+        if(as.numeric(op) <= as.numeric(mean_p) - as.numeric(stop)){
+          limitOrders2[i] <- -rsrsPos[params$series[i]]
+          limitPrices2[i] <- mean_p - stop
         }
+        
+        if (alpha006*100 > thr006){
+          a006Pos[params$series[i]] <- round(abs(alpha006)) * posnorm[i]/100
+        }
+          
 
       }
       else{
         
           rsrsPos[params$series[i]] <- 0
           a006Pos[params$series[i]] <- 0
-
       }
       
       ###################################################################
@@ -248,31 +278,43 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 }
 
 
-#---------------------------------------------------------------
+#---------------------------------------------------------------Functions---------------------------------------------------------------
+
 #Functions of rsrs strategy;
-Cal_RSRS <- function(High, Low, startIndex, iter)
+Cal_RSRS <- function(HIGH,LOW,  startIndex, iter)
   for (j in startIndex:iter){
-    HighList <- High[startIndex:(iter-1)]
-    LowList <- Low[startIndex:(iter-1)]
+    HighList <- HIGH[startIndex:(iter-1)]
+    LowList <- LOW[startIndex:(iter-1)]
     #OLS linear regression
     fit=lm(HighList~LowList)
     nrsrs <- as.numeric(fit$coefficients[2])
     return(nrsrs)
   }
 
-Cal_RSRS_M <- function(High, Low, startIndex_m,lookback,iter){
+Cal_RSRS_M <- function(HIGH,LOW, startIndex_m,lookback,iter){
   N = startIndex_m
   mrsrs = c()
   for (i in N:iter){ #定义i循环
     
-    HighList <- High[(i-lookback):i]
-    LowList <- Low[(i-lookback):i]
+    HighList <- HIGH[(i-lookback):i]
+    LowList <- LOW[(i-lookback):i]
     #OLS linear regression
     fit=lm(HighList~LowList)
     #store all rsrs values as a vector
     mrsrs=c(mrsrs,as.numeric(fit$coefficients[2]))
   }
   return(mrsrs)
+}
+
+Cal_ATR <- function(HIGH,LOW,CLOSE,startIndex,lookback,iter){
+  nTR <- 0
+  for( i in startIndex+1:iter){
+    #52~69
+    TR <- max((HIGH[i]-LOW[i]), abs(HIGH[i]-CLOSE[i-1]), abs(CLOSE[i-1]-LOW[i]))
+    nTR <- nTR + TR 
+  } 
+  ATR <- nTR/lookback
+  return(ATR)
 }
 #---------------------------------------------------------------
 
