@@ -151,7 +151,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       
       # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
       pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
-      print(paste("pnl_yesterday",pnl_yesterday))
+      #print(paste("pnl_yesterday",pnl_yesterday))
       
       if (pnl_yesterday<0){
         rsrsPos <- rsrsPos/2
@@ -240,7 +240,24 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       date <<- append(date,index(newRowList[[1]]))
       strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
       ###################################################################
-
+      
+      ##################################  Get returns and stop loss  ###################################################
+      prev_close <- CLOSE[store$iter-2]
+      cur_open <- OPEN[store$iter-1]
+      next_open <- OPEN[store$iter]
+      
+      
+      # run from day 2, where oldPos would always be 0, until penultimate day
+      slippage <- abs(prev_close-next_open)*0.2
+      
+      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
+      pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
+      #print(paste("pnl_yesterday",pnl_yesterday))
+      
+      if (pnl_yesterday<0){
+        dmaPos <- dmaPos/2
+      }
+      #################################################################################################################
     }
 
   }
