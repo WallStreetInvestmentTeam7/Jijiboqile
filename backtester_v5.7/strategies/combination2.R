@@ -18,17 +18,12 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   limitOrders2=allzero;
   limitPrices2=allzero;
   
-  # marketOrders1 <- allzero; 
-  # marketOrders2 <- -currentPos;
-  # marketOrders3 <- -currentPos;
+
   # initialize dmaMACD strategy's market position
   dmaPos <- allzero
-  #dmaPos2 <- store$dmaPos
-  
   #initial rsrs strategy position to be all 0
   rsrsPos <- allzero
   #rsrsPos2 <- store$rsrsPos
-  #rsrsAccumulatePosition <- store$rsrsAccumulatePosition
   a006Pos <- allzero
   
   
@@ -37,6 +32,8 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   
   
   if(store$iter > params$rsrs_lookback_m + params$rsrs_lookback){
+    
+    #print(store$rsrsPos)
 
     for (i in 1:length(params$series)){
 
@@ -53,6 +50,29 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       OPEN <- store$ope[,i]
       CLOSE <- store$cl[,i]
       VOLUME <- store$vol[,i]
+      
+      ##################################  Get Profit & Loss for Yesterday  #############################
+      
+      
+      
+      prev_close <- CLOSE[store$iter-2]
+      cur_open <- OPEN[store$iter-1]
+      next_open <- OPEN[store$iter]
+      
+      
+      # run from day 2, where oldPos would always be 0, until penultimate day
+      slippage <- abs(prev_close-next_open)*0.2
+      
+      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
+      pnl_yesterday1 <- store$rsrsPos[params$series[i]] * (next_open - cur_open) - abs(store$rsrsPos[params$series[i]]) * slippage
+      pnl_yesterday2 <- store$a006Pos[params$series[i]] * (next_open - cur_open) - abs(store$rsrsPos[params$series[i]]) * slippage
+      
+      pnl_yesterday <- pnl_yesterday1 + pnl_yesterday2
+      #print(pnl_yesterday)
+      
+      
+      ###################################################################################################
+     
 
       # calculate Nth day's RSRS
       startIndex <- store$iter - params$rsrs_lookback #params$lookback=10, start from 301th day
@@ -97,7 +117,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #correlation value larger - tongzhangtongdie (we do not want)
       #with (-1): Alpha006's value larger - means Liangjiabeili larger - means we should buy
       #print(paste("alpha006 =",alpha006))
-
+      
       
       #Set Position
       if (rsrs_z < 0.7){
@@ -140,25 +160,15 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
       ###################################################################
       
-      ##################################  Get returns and stop loss  ###################################################
-      prev_close <- CLOSE[store$iter-2]
-      cur_open <- OPEN[store$iter-1]
-      next_open <- OPEN[store$iter]
       
       
-      # run from day 2, where oldPos would always be 0, until penultimate day
-      slippage <- abs(prev_close-next_open)*0.2
-      
-      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
-      pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
-      #print(paste("pnl_yesterday",pnl_yesterday))
-      
+      ##################################### stop loss ####################################################
       if (pnl_yesterday<0){
         rsrsPos <- rsrsPos/2
         a006Pos <- a006Pos/2
       }
       
-      #################################################################################################################
+      ####################################################################################################
     }
   }
 
@@ -172,6 +182,32 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
     startIndexkdj <- store$iter - params$kdjlookback
 
     for (i in 1:length(params$series)) {
+      
+      #indicators
+      HIGH = store$high[,i]
+      LOW = store$low[,i]
+      OPEN <- store$ope[,i]
+      CLOSE <- store$cl[,i]
+      VOLUME <- store$vol[,i]
+      
+      ##################################  Get Profit & Loss for Yesterday  #############################
+      
+      
+      
+      prev_close <- CLOSE[store$iter-2]
+      cur_open <- OPEN[store$iter-1]
+      next_open <- OPEN[store$iter]
+      
+      
+      # run from day 2, where oldPos would always be 0, until penultimate day
+      slippage <- abs(prev_close-next_open)*0.2
+      
+      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
+      pnl_yesterday3 <- store$dmaPos[params$series[i]] * (next_open - cur_open) - abs(store$dmaPos[params$series[i]]) * slippage
+      #print(pnl_yesterday)
+      
+      
+      ###################################################################################################
 
 
       closeP <- as.vector(newRowList[[params$series[i]]]$Close)
@@ -242,21 +278,9 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       ###################################################################
       
       ##################################  Get returns and stop loss  ###################################################
-      prev_close <- CLOSE[store$iter-2]
-      cur_open <- OPEN[store$iter-1]
-      next_open <- OPEN[store$iter]
-      
-      
-      # run from day 2, where oldPos would always be 0, until penultimate day
-      slippage <- abs(prev_close-next_open)*0.2
-      
-      # +/- (nextOp - curOp) * "held on cur" - slippage * "traded on cur"
-      pnl_yesterday <- currentPos * (next_open - cur_open) - abs(currentPos[params$series[i]]) * slippage
-      #print(paste("pnl_yesterday",pnl_yesterday))
-      
-      if (pnl_yesterday<0){
-        dmaPos <- dmaPos/2
-      }
+      #if (pnl_yesterday<0){
+      #  dmaPos <- dmaPos/2
+      #}
       #################################################################################################################
     }
 
@@ -267,11 +291,9 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   store <- updateDmaPos(store, dmaPos)
   store <- updateRsrsPos(store, rsrsPos)
   store <- updateAlpha006Pos(store, a006Pos)
-  #Update market orders
-  # marketOrders2 <- -currentPos+ rsrsPos
-  # marketOrders1 <- allzero + dmaPos
-  # marketOrders3 <- -currentPos + a006Pos
   
+  #print(store$rsrsPos)
+
   marketOrders <- marketOrders + rsrsPos + dmaPos + a006Pos
   
   
@@ -420,19 +442,18 @@ updateOpeStore <- function(opeStore, newRowList, series, iter) {
 }
 
 #-------------------------------------------
-
-
-#-------------------------------------------
 initStore <- function(newRowList,series) {
   return(list(iter=0,cl=initClStore(newRowList,series),
               vol=initVolStore(newRowList,series),
               high=initHigh(newRowList,series),
               low=initLow(newRowList,series),
               ope=initOpeStore(newRowList,series),
-              dmaPos = rep(0,10),
-              rsrsPos = rep(0,10),
-              a006Pos = rep(0,10)))
+              rsrsPos <- rep(0,ncol= length(params$series)),
+              a006Pos <- rep(0,ncol= length(params$series)),
+              dmaPos <- rep(0,ncol= length(params$series))
+             ))
 }
+
 updateStore <- function(store, newRowList, series, action) {
   store$iter <- store$iter + 1
   store$cl <- updateClStore(store$cl,newRowList,series,store$iter)
