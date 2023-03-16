@@ -122,6 +122,16 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #with (-1): Alpha006's value larger - means Liangjiabeili larger - means we should buy
       #print(paste("alpha006 =",alpha006))
       
+      if (store$iter > 10){
+        OPENLIST <- OPEN[0:store$iter]
+        CLOSELIST <- CLOSE[0:store$iter]
+        amplitude <- CLOSE[store$iter]-OPEN[store$iter]
+        alpha018vector = -1*rank(runSD(abs(CLOSELIST-OPENLIST), n=5) + amplitude + runCor(CLOSELIST, OPENLIST, n = 10))
+        
+        #Find the current days' alpha 018 value
+        alpha018 <- alpha018vector[store$iter]
+        rank018 <- alpha018/store$iter
+      }
       
       #Set Position
       if (rsrs_z < 0.7){
@@ -146,7 +156,18 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
         }
         
         if (alpha006*100 > thr006){
-          a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]
+          if(rank018 <= 0.2){
+            
+            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]*3
+          }
+          else if(rank018 <= 0.5 && rank018 > 0.2 ){
+            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]*1.5
+            
+          }
+          else{
+            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i] 
+            
+          }
         }
       }
       
@@ -244,8 +265,19 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
           &&short_ma >= long_ma
           && macd$macd >macd$signal ) {
 
-        dmaPos[params$series[i]] <-  abs(short_ma - long_ma)/long_ma*(posnorm1[i])*100
-
+        if(rank018 <= 0.2){
+          
+          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*3/long_ma*(posnorm1[i])*100
+        }
+        else if(rank018 <= 0.5 && rank018 > 0.2 ){
+          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*1.5/long_ma*(posnorm1[i])*100
+          
+        }
+        else{
+          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*0.8/long_ma*(posnorm1[i])*100 
+          
+        }
+        
         if(Kline<50 && closeP < short_ma){
           limitOrders1[i] <- -dmaPos[params$series[i]]
           limitPrices1[i] <- short_ma * (1 - 0.05)
