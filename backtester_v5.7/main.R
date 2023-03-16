@@ -5,8 +5,8 @@ source('framework/utilities.R'); # for backtestAndPlot function
 source('example_strategies.R');
 
 # load data
-dataList <- getData(directory="PART1")
-#dataList <- lapply(dataList, function(x) x[0:600])
+dataList <- getData(directory="PART2")
+dataList <- lapply(dataList, function(x) x[500:1100])
 # choose strategy from example_strategies
 strategy <- "combination2" 
 

@@ -8,7 +8,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   if (is.null(store)) store <- initStore(newRowList,params$series)
   store <- updateStore(store, newRowList, params$series)
   
-  marketOrders <- allzero; pos <- allzero;limitPos <- allzero
+  marketOrders <- allzero; pos <- -currentPos; limitPos <- allzero
   
   limitOrders1=allzero;
   limitPrices1=allzero;
@@ -59,7 +59,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
      
       #decide if we should go long/short/flat (returning 1/-1/0)
       if (rsrs_z > 0.7){         
-        pos[params$series[i]] <- round(rsrs_n * rsrsPos[i])/68
+        pos[params$series[i]] <- round(rsrs_n * rsrsPos[i])/100
         #print(params$posSizes[i])
         # if(as.numeric(op) <= as.numeric(mean_p) - as.numeric(stop)){
         #   limitPos[params$series[i]] <- -pos[params$series[i]]
@@ -70,7 +70,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       }
       
       else if (rsrs_z < 0.7){
-        pos[params$series[i]] < -round(rsrs_n * rsrsPos[i])/68
+        pos[params$series[i]] < -round(rsrs_n * rsrsPos[i])/100
         # if(as.numeric(op) >= as.numeric(mean_p) - as.numeric(stop)){
         #   limitPos[params$series[i]] <- pos[params$series[i]]
         #   limitPrices1[i] <- mean_p + stop
@@ -83,7 +83,13 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
         
         
       }
-      
+      ###################################################################
+      #-----------------------------------visualization-----------------------------------
+      currentPosition <- append(currentPosition,
+                                currentPos[params$series[i]])
+      date <<- append(date,index(newRowList[[1]]))
+      strategyMatrix <<- rbind(strategyMatrix,currentPosition) 
+      ###################################################################
       
     } 
     
@@ -94,6 +100,18 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   #Update market orders
   marketOrders <- allzero + pos
   #limitOrders1 <- limitOrders1 + limitPos
+  ####################################################################################
+  #-----------------------------------visualization-----------------------------------
+  if(store$iter==runningDays-2){
+    strategyMatrix <- strategyMatrix[-1,]
+    for(i in 1:length(params$series)){
+      png(paste("Graph", toString(params$series[i]), ".png"),
+          width = 1920, height = 1080, units = "px")
+      matplot(date,strategyMatrix[,i],
+              ylab="Current Position", type='l')
+      dev.off()
+    }
+  }
   
   
   
