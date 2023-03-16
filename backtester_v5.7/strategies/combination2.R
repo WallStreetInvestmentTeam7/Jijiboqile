@@ -38,11 +38,16 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
     for (i in 1:length(params$series)){
 
       #using open prices difference as the position normalization
-      OpenDiffs <- diff(store$ope)
-      absOpenDiffs <- matrix(abs(OpenDiffs),ncol = length(params$series))
-      avgAbsDiffs <- apply(absOpenDiffs,2,function(x) mean(x[x>0]))
+      CloseDiffs <- diff(store$cl)
+      absCloseDiffs <- matrix(abs(CloseDiffs),ncol = length(params$series))
+      avgAbsDiffs <- apply(absCloseDiffs,2,function(x) mean(x[x>0]))
       largestAvgAbsDiffs <- max(avgAbsDiffs)
       posnorm <- round(largestAvgAbsDiffs/avgAbsDiffs)
+      estCostToBuy <- sum(posnorm * avgAbsDiffs)
+      targetspent_a <- 200000
+      targetspent_r <- 300000
+      multiplier_a <- targetspent_a/estCostToBuy
+      multiplier_r <- targetspent_r/estCostToBuy
 
       #indicators
       HIGH = store$high[,i]
@@ -122,7 +127,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #Set Position
       if (rsrs_z < 0.7){
         
-        rsrsPos[params$series[i]] <- -round(rsrs_n * (posnorm[i]/68))
+        rsrsPos[params$series[i]] <- -round(rsrs_n * (posnorm[i])/multiplier_r)
         
         #rsrs Stop loss
         if(as.numeric(op) >= as.numeric(mean_p) - as.numeric(stop)){
@@ -133,7 +138,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 
       else if (rsrs_z > 0.7){
         
-        rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i]/68))       
+        rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i])/multiplier_r)   
         
         #rsrs Stop loss
         if(as.numeric(op) <= as.numeric(mean_p) - as.numeric(stop)){
@@ -142,7 +147,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
         }
         
         if (alpha006*100 > thr006){
-          a006Pos[params$series[i]] <- round(abs(alpha006)) * posnorm[i]/100
+          a006Pos[params$series[i]] <- round(abs(alpha006)) * posnorm[i]/multiplier_a
         }
       }
       
@@ -308,7 +313,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
   
   return(list(store=store,marketOrders=marketOrders,
               limitOrders1=limitOrders1,limitPrices1=limitPrices1,
-              limitOrders2=allzero,limitPrices2=allzero))
+              limitOrders2=limitOrders2,limitPrices2=limitPrices2))
 }
 
 
