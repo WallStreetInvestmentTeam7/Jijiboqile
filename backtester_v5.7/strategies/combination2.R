@@ -38,17 +38,23 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
     for (i in 1:length(params$series)){
 
       #using open prices difference as the position normalization
-      CloseDiffs <- diff(store$cl)
-      absCloseDiffs <- matrix(abs(CloseDiffs),ncol = length(params$series))
-      avgAbsDiffs <- apply(absCloseDiffs,2,function(x) mean(x[x>0]))
-      largestAvgAbsDiffs <- max(avgAbsDiffs)
-      posnorm <- round(largestAvgAbsDiffs/avgAbsDiffs)
+      # CloseDiffs <- diff(store$cl)
+      # absCloseDiffs <- matrix(abs(CloseDiffs),ncol = length(params$series))
+      # avgAbsDiffs <- apply(absCloseDiffs,2,function(x) mean(x[x>0]))
+      # largestAvgAbsDiffs <- max(avgAbsDiffs)
+      # posnorm <- round(largestAvgAbsDiffs/avgAbsDiffs)
       
-      # estCostToBuy <- sum(posnorm * avgAbsDiffs)
-      # targetspent_a <- 300000
-      # targetspent_r <- 300000
-      # multiplier_a <- targetspent_a/estCostToBuy
-      # multiplier_r <- targetspent_r/estCostToBuy
+      clall <- matrix(store$cl,ncol = length(params$series))
+      closeprice <- apply(clall,2, function(x) mean(x[x>0]))
+      largestclose <- max(clall)
+      #print(round(largestopen/openprice))
+      posnorm <- round(largestclose/closeprice)
+      
+      estCostToBuy <- sum(posnorm * closeprice)
+      targetspent_a <- 300000
+      targetspent_r <- 50000
+      multiplier_a <- targetspent_a/estCostToBuy
+      multiplier_r <- targetspent_r/estCostToBuy
 
       #indicators
       HIGH = store$high[,i]
@@ -136,7 +142,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #Set Position
       if (rsrs_z < 0.7){
         
-        rsrsPos[params$series[i]] <- -round(rsrs_n * (posnorm[i]))
+        rsrsPos[params$series[i]] <- -round(rsrs_n * (posnorm[i])) * multiplier_r
         
         #rsrs Stop loss
         if(as.numeric(op) >= as.numeric(mean_p) - as.numeric(stop)){
@@ -147,7 +153,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 
       else if (rsrs_z > 0.7){
         
-        rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i]))
+        rsrsPos[params$series[i]] <- round(rsrs_n * (posnorm[i]))* multiplier_r
         
         #rsrs Stop loss
         if(as.numeric(op) <= as.numeric(mean_p) - as.numeric(stop)){
@@ -158,14 +164,14 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
         if (alpha006*100 > thr006){
           if(rank018 <= 0.2){
             
-            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]*3
+            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]*multiplier_a
           }
           else if(rank018 <= 0.5 && rank018 > 0.2 ){
-            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]*1.5
+            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i]*(multiplier_a/2)
             
           }
           else{
-            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i] 
+            a006Pos[params$series[i]] <- round(1+alpha006) * posnorm[i] *(multiplier_a/4)
             
           }
         }
@@ -252,8 +258,9 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
       #print(round(largestopen/openprice))
       posnorm1 <- round(largestclose/closeprice)
       estCostToBuy <- sum(posnorm1 * closeprice)
-      targetspent <- 300000
+      targetspent <- 450000
       multiplier_d <- targetspent / estCostToBuy
+      #print(multiplier_d)
       #print(dmaPos)
       #print(round(largestAvgAbsDiffs/avgAbsDiffs))
       #when there is a cross in double moving average and macd indicators
@@ -267,14 +274,14 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
 
         if(rank018 <= 0.2){
           
-          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*3/long_ma*(posnorm1[i])*100
+          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*multiplier_d/long_ma*(posnorm1[i])*100
         }
         else if(rank018 <= 0.5 && rank018 > 0.2 ){
-          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*1.5/long_ma*(posnorm1[i])*100
+          dmaPos[params$series[i]] <-  (abs(short_ma - long_ma)/long_ma)*100*posnorm1[i]*(multiplier_d/2)
           
         }
         else{
-          dmaPos[params$series[i]] <-  abs(short_ma - long_ma)*0.8/long_ma*(posnorm1[i])*100 
+          dmaPos[params$series[i]] <-  (abs(short_ma - long_ma)/long_ma)*100*posnorm1[i]*(multiplier_d/4)
           
         }
         
@@ -298,7 +305,7 @@ getOrders <- function(store, newRowList, currentPos, info, params) {
                && macd$macd < macd$signal
       ) {
 
-        dmaPos[params$series[i]] <- -abs(short_ma - long_ma)/long_ma*(posnorm1[i])*100
+        dmaPos[params$series[i]] <- -abs(short_ma - long_ma)/long_ma*(posnorm1[i])*100*multiplier_d
         if(Kline>50 && closeP > short_ma){
           limitOrders1[i] <- dmaPos[params$series[i]]
           limitPrices1[i] <- short_ma * (1 + 0.05)
